@@ -66,6 +66,7 @@ class Maze:
 
         self.solution = None
         self.explored_nodes = set()
+        self.dead_ends = []
 
     def neighbors(self, state):
         row, col = state
@@ -82,7 +83,7 @@ class Maze:
         return result
 
 # ==============================
-# DFS Class (جستجوی عمق‌اول)
+# DFS Class (Depth-first search)
 # ==============================
 class DFS:
     def __init__(self, maze):
@@ -106,16 +107,22 @@ class DFS:
                 self.maze.solution.reverse()
                 return steps
 
+            valid_moves = 0
             for action, neighbor in self.maze.neighbors(state):
                 if neighbor not in came_from:
                     frontier.append(Node(neighbor, node, action))
                     came_from[neighbor] = state
                     steps.append(neighbor)
+                    valid_moves += 1
+
+            if valid_moves == 0 and state != self.maze.goal and state != self.maze.start:
+                if state not in self.maze.dead_ends:
+                    self.maze.dead_ends.append(state)
 
         return steps
 
 # ==============================
-# BFS Class (جستجوی سطح‌به‌سطح)
+# BFS Class (Breadth-first search)
 # ==============================
 class BFS:
     def __init__(self, maze):
@@ -140,16 +147,22 @@ class BFS:
                 self.maze.solution.reverse()
                 return steps
 
+            valid_moves = 0
             for action, neighbor in self.maze.neighbors(state):
                 if neighbor not in came_from:
                     frontier.add(Node(neighbor, node, action))
                     came_from[neighbor] = state
                     steps.append(neighbor)
+                    valid_moves += 1
+
+            if valid_moves == 0 and state != self.maze.goal and state != self.maze.start:
+                if state not in self.maze.dead_ends:
+                    self.maze.dead_ends.append(state)
 
         return steps
 
 # ==============================
-# AStar Class (جستجوی A*)
+# AStar Class (A* search)
 # ==============================
 class AStar:
     def __init__(self, maze):
@@ -178,6 +191,7 @@ class AStar:
                 self.maze.solution.reverse()
                 return steps
 
+            valid_moves = 0
             for action, neighbor in self.maze.neighbors(state):
                 new_cost = cost_so_far[state] + 1
                 if neighbor not in cost_so_far or new_cost < cost_so_far[neighbor]:
@@ -186,6 +200,11 @@ class AStar:
                     frontier.append((priority, Node(neighbor, node, action)))
                     came_from[neighbor] = state
                     steps.append(neighbor)
+                    valid_moves += 1
+
+            if valid_moves == 0 and state != self.maze.goal and state != self.maze.start:
+                if state not in self.maze.dead_ends:
+                    self.maze.dead_ends.append(state)
 
         return steps
 
@@ -210,6 +229,7 @@ class MazeVisualizer:
         self.goal_img = pygame.image.load("./blocks/goal.png")
         self.visited_img = pygame.image.load("./blocks/visited.png")
         self.solution_img = pygame.image.load("./blocks/solution.png")
+        self.end_img = pygame.image.load("./blocks/end.png")  # end.png for dead ends
 
         self.wall_img = pygame.transform.scale(self.wall_img, (self.cell_size, self.cell_size))
         self.path_img = pygame.transform.scale(self.path_img, (self.cell_size, self.cell_size))
@@ -217,6 +237,7 @@ class MazeVisualizer:
         self.goal_img = pygame.transform.scale(self.goal_img, (self.cell_size, self.cell_size))
         self.visited_img = pygame.transform.scale(self.visited_img, (self.cell_size, self.cell_size))
         self.solution_img = pygame.transform.scale(self.solution_img, (self.cell_size, self.cell_size))
+        self.end_img = pygame.transform.scale(self.end_img, (self.cell_size, self.cell_size))
 
         self.choose_algorithm(algorithm)
         self.run_visualization()
@@ -260,9 +281,14 @@ class MazeVisualizer:
             row, col = state
             if (row, col) == self.maze.goal:
                 continue  
+
             x = col * self.cell_size
             y = row * self.cell_size
-            self.screen.blit(self.visited_img, (x, y))
+
+            if state in self.maze.dead_ends:
+                self.screen.blit(self.end_img, (x, y))
+            else:
+                self.screen.blit(self.visited_img, (x, y))
             pygame.display.update()
             time.sleep(0.01)
         self.draw_solution_path()
@@ -280,6 +306,7 @@ class MazeVisualizer:
             row, col = state
             if (row, col) == self.maze.goal:
                 continue  
+
             x = col * self.cell_size
             y = row * self.cell_size
             self.screen.blit(self.solution_img, (x, y))
