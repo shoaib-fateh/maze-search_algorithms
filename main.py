@@ -3,18 +3,16 @@ import time
 import pygame
 from collections import deque
 
-# ==============================
-# Node class
-# ==============================
+# --- Node Class ---
+# A simple container for a maze cell's state and backtracking info.
 class Node:
     def __init__(self, state, parent=None, action=None):
-        self.state = state
-        self.parent = parent
-        self.action = action
+        self.state = state  
+        self.parent = parent  
+        self.action = action  
 
-# ==============================
-# QueueFrontier class (for BFS)
-# ==============================
+# --- QueueFrontier Class (for BFS) ---
+# Manages our frontier as a queue.
 class QueueFrontier:
     def __init__(self):
         self.frontier = deque()
@@ -33,14 +31,14 @@ class QueueFrontier:
             raise Exception("Frontier is empty")
         return self.frontier.popleft()
 
-# ==============================
-# Maze class
-# ==============================
+# --- Maze Class ---
+# Reads the maze from a file and sets up grid, walls, start, and goal.
 class Maze:
     def __init__(self, filename):
         with open(filename) as f:
             contents = f.read()
 
+        # Make sure there's exactly one start (A) and one goal (B)
         if contents.count("A") != 1 or contents.count("B") != 1:
             raise Exception("Maze must have exactly one start (A) and one goal (B)")
 
@@ -48,6 +46,7 @@ class Maze:
         self.height = len(self.grid)
         self.width = max(len(row) for row in self.grid)
 
+        # Build the walls grid and mark start/goal positions
         self.walls = []
         for i in range(self.height):
             row = []
@@ -64,10 +63,11 @@ class Maze:
                     row.append(True)
             self.walls.append(row)
 
-        self.solution = None
+        self.solution = None  # Final solution path will be stored here
         self.explored_nodes = set()
-        self.dead_ends = []
+        self.dead_ends = []  # Positions where no further moves are possible
 
+    # Returns valid neighboring moves (up, down, left, right)
     def neighbors(self, state):
         row, col = state
         candidates = [
@@ -82,24 +82,24 @@ class Maze:
                 result.append((action, (r, c)))
         return result
 
-# ==============================
-# DFS Class (Depth-first search)
-# ==============================
+# --- DFS Class ---
+# Depth-first search: good old recursion without the recursion (using a stack).
 class DFS:
     def __init__(self, maze):
         self.maze = maze
 
     def solve(self):
         start_node = Node(self.maze.start)
-        frontier = [start_node]
+        frontier = [start_node]  # Stack for DFS
         came_from = {self.maze.start: None}
-        steps = []
+        steps = []  # Order of cell exploration
 
         while frontier:
-            node = frontier.pop()
+            node = frontier.pop()  # LIFO
             state = node.state
 
             if state == self.maze.goal:
+                # Build the solution path by backtracking
                 self.maze.solution = []
                 while state != self.maze.start:
                     self.maze.solution.append(state)
@@ -115,15 +115,15 @@ class DFS:
                     steps.append(neighbor)
                     valid_moves += 1
 
+            # If no further moves and not at start/goal, mark as dead end
             if valid_moves == 0 and state != self.maze.goal and state != self.maze.start:
                 if state not in self.maze.dead_ends:
                     self.maze.dead_ends.append(state)
 
         return steps
 
-# ==============================
-# BFS Class (Breadth-first search)
-# ==============================
+# --- BFS Class ---
+# Breadth-first search: exploring layer by layer.
 class BFS:
     def __init__(self, maze):
         self.maze = maze
@@ -140,6 +140,7 @@ class BFS:
             state = node.state
 
             if state == self.maze.goal:
+                # Backtrack to form the solution path
                 self.maze.solution = []
                 while state != self.maze.start:
                     self.maze.solution.append(state)
@@ -155,21 +156,22 @@ class BFS:
                     steps.append(neighbor)
                     valid_moves += 1
 
+            # Mark dead ends when stuck (excluding start and goal)
             if valid_moves == 0 and state != self.maze.goal and state != self.maze.start:
                 if state not in self.maze.dead_ends:
                     self.maze.dead_ends.append(state)
 
         return steps
 
-# ==============================
-# AStar Class (A* search)
-# ==============================
+# --- AStar Class ---
+# A* search using Manhattan distance as the heuristic.
 class AStar:
     def __init__(self, maze):
         self.maze = maze
 
     def solve(self):
         def heuristic(a, b):
+            # Manhattan distance
             return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
         start_node = Node(self.maze.start)
@@ -184,6 +186,7 @@ class AStar:
             state = node.state
 
             if state == self.maze.goal:
+                # Reconstruct the solution path
                 self.maze.solution = []
                 while state != self.maze.start:
                     self.maze.solution.append(state)
@@ -202,19 +205,18 @@ class AStar:
                     steps.append(neighbor)
                     valid_moves += 1
 
+            # Record dead end if stuck
             if valid_moves == 0 and state != self.maze.goal and state != self.maze.start:
                 if state not in self.maze.dead_ends:
                     self.maze.dead_ends.append(state)
 
         return steps
 
-# ==============================
-# MazeVisualizer class
-# ==============================
+# --- MazeVisualizer Class ---
+# Draws the maze and animates the solving process.
 class MazeVisualizer:
     def __init__(self, maze, algorithm="bfs"):
         pygame.init()
-
         self.maze = maze
         self.cell_size = 15
         self.width = self.maze.width * self.cell_size
@@ -223,14 +225,16 @@ class MazeVisualizer:
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption(f"Maze | {algorithm.upper()} Algorithm")
 
+        # Load images for maze elements
         self.wall_img = pygame.image.load("./blocks/wall.png")
         self.path_img = pygame.image.load("./blocks/path.png")
         self.start_img = pygame.image.load("./blocks/start.png")
         self.goal_img = pygame.image.load("./blocks/goal.png")
         self.visited_img = pygame.image.load("./blocks/visited.png")
         self.solution_img = pygame.image.load("./blocks/solution.png")
-        self.end_img = pygame.image.load("./blocks/end.png")  # end.png for dead ends
+        self.end_img = pygame.image.load("./blocks/end.png")
 
+        # Resize images to match our cell dimensions
         self.wall_img = pygame.transform.scale(self.wall_img, (self.cell_size, self.cell_size))
         self.path_img = pygame.transform.scale(self.path_img, (self.cell_size, self.cell_size))
         self.start_img = pygame.transform.scale(self.start_img, (self.cell_size, self.cell_size))
@@ -242,6 +246,7 @@ class MazeVisualizer:
         self.choose_algorithm(algorithm)
         self.run_visualization()
 
+    # Choose which search algorithm to use
     def choose_algorithm(self, algorithm_type):
         if algorithm_type.lower() == "dfs":
             self.pathfinding = DFS(self.maze)
@@ -252,11 +257,13 @@ class MazeVisualizer:
         else:
             raise ValueError("Unknown algorithm: " + algorithm_type)
 
+        # Time the solving process
         start_time = time.time()
         self.steps = self.pathfinding.solve()
         end_time = time.time()
         self.total_time = end_time - start_time
 
+    # Draw the static maze grid
     def draw_maze(self):
         for i in range(self.maze.height):
             for j in range(self.maze.width):
@@ -271,6 +278,7 @@ class MazeVisualizer:
                 else:
                     self.screen.blit(self.path_img, (x, y))
 
+    # Animate the exploration process
     def explore_maze_step_by_step(self):
         for index, state in enumerate(self.steps):
             for event in pygame.event.get():
@@ -285,6 +293,7 @@ class MazeVisualizer:
             x = col * self.cell_size
             y = row * self.cell_size
 
+            # Use end_img for dead ends, otherwise visited_img
             if state in self.maze.dead_ends:
                 self.screen.blit(self.end_img, (x, y))
             else:
@@ -293,6 +302,7 @@ class MazeVisualizer:
             time.sleep(0.01)
         self.draw_solution_path()
 
+    # Animate the final solution path
     def draw_solution_path(self):
         if not self.maze.solution:
             return
@@ -313,6 +323,7 @@ class MazeVisualizer:
             pygame.display.update()
             time.sleep(0.01)
 
+    # Main loop: draw maze, animate exploration, and keep window open.
     def run_visualization(self):
         running = True
         self.draw_maze()
@@ -321,10 +332,10 @@ class MazeVisualizer:
 
         total_steps = len(self.steps)
         solution_length = len(self.maze.solution) if self.maze.solution else 0
-        print("Maze solved!")
-        print(f"Total nodes checked: {total_steps}")
-        print(f"Solution length (from start to goal): {solution_length}")
-        print(f"Total time taken: {self.total_time:.4f} seconds")
+        print("\033[92mMaze solved!\033[0m")
+        print(f"\033[93mTotal nodes checked: \033[0m{total_steps}")
+        print(f"\033[93mSolution length (from start to goal): \033[0m{solution_length}")
+        print(f"\033[91mTotal time taken: \033[0m{self.total_time:.4f} seconds")
 
         while running:
             for event in pygame.event.get():
@@ -333,12 +344,10 @@ class MazeVisualizer:
                     pygame.quit()
                     sys.exit()
 
-# ==============================
-# Run the app
-# ==============================
+# --- Main Entry Point ---
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         sys.exit("Usage: python main.py ./mazemaps/maze.txt algorithm\nExample: python main.py ./mazemaps/maze.txt bfs")
     maze = Maze(sys.argv[1])
-    algorithm = sys.argv[2]  # "dfs", "bfs" or "a_star"
+    algorithm = sys.argv[2]  # Options: "dfs", "bfs", or "a_star"
     MazeVisualizer(maze, algorithm)
