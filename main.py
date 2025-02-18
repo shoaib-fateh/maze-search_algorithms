@@ -2,6 +2,8 @@ import sys
 import time
 import pygame
 from collections import deque
+import tracemalloc 
+import matplotlib.pyplot as plt
 
 # --- Node Class ---
 # A simple container for a maze cell's state and backtracking info.
@@ -246,6 +248,7 @@ class MazeVisualizer:
         self.choose_algorithm(algorithm)
         self.run_visualization()
 
+
     # Choose which search algorithm to use
     def choose_algorithm(self, algorithm_type):
         if algorithm_type.lower() == "dfs":
@@ -256,12 +259,19 @@ class MazeVisualizer:
             self.pathfinding = AStar(self.maze)
         else:
             raise ValueError("Unknown algorithm: " + algorithm_type)
+        
+        # Start memory tracking
+        tracemalloc.start()
 
         # Time the solving process
         start_time = time.time()
         self.steps = self.pathfinding.solve()
         end_time = time.time()
         self.total_time = end_time - start_time
+
+        current, peak = tracemalloc.get_traced_memory()
+        self.memory_usage = peak / (1024 * 1024)
+        tracemalloc.stop()
 
     # Draw the static maze grid
     def draw_maze(self):
@@ -323,19 +333,38 @@ class MazeVisualizer:
             pygame.display.update()
             time.sleep(0.01)
 
+    def wait_for_keypress(self):
+        waiting = True
+        while waiting:
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN:
+                    waiting = False
+                elif event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+
+
     # Main loop: draw maze, animate exploration, and keep window open.
     def run_visualization(self):
         running = True
         self.draw_maze()
         pygame.display.update()
+    
+        # Wait for keypress before starting the search
+        print("Press any key to start pathfinding...")
+        self.wait_for_keypress()
+
+
         self.explore_maze_step_by_step()
 
         total_steps = len(self.steps)
         solution_length = len(self.maze.solution) if self.maze.solution else 0
-        print("\033[92mMaze solved!\033[0m")
+        print(f"\033[92mMaze solved! {sys.argv[2]}\033[0m")
         print(f"\033[93mTotal nodes checked: \033[0m{total_steps}")
         print(f"\033[93mSolution length (from start to goal): \033[0m{solution_length}")
         print(f"\033[91mTotal time taken: \033[0m{self.total_time:.4f} seconds")
+        print(f"\033[94mPeak memory usage: \033[0m{self.memory_usage:.4f} MB")
+        
 
         while running:
             for event in pygame.event.get():
