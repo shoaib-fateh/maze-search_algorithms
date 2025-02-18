@@ -91,6 +91,21 @@ To run the project, follow these steps:
 
 ---
 
+### Your Challenge:
+Can you determine which algorithm is **best optimized** for the challenge maze?  
+
+<img src="./maze_challange.png" />
+
+Try running the following commands and test it yourself! 👇  
+
+```bash
+git clone https://github.com/shoaib-fateh/maze-search_algorithms.git
+cd maze-search_algorithms
+pip install -r requirements.txt
+python main.py ./mazemaps/challange_maze.txt dfs  # Try all: dfs, bfs, a_star
+```
+
+
 ### License:
 This project is open-source and available under the [MIT License](LICENSE).
 
